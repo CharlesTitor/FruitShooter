@@ -1835,7 +1835,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FPSController
   animator: {fileID: 0}
   moveSpeed: 150
-  gravity: -20
+  gravity: -200
+  jumpHeight: 70
 --- !u!95 &1075846762
 Animator:
   serializedVersion: 7
