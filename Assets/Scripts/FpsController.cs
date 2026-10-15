@@ -83,7 +83,7 @@ public class FPSController : MonoBehaviour
         // Comprueba si el jugador pidió saltar.
         if (canJump && controller.isGrounded)
         {
-            verticalVelocity = Mathf.Sqrt(jumpHeight*-4f*gravity);
+            verticalVelocity = Mathf.Sqrt(jumpHeight*-2f*gravity);
         }
 
         // Reinicia la petición para no saltar repetidamente.
