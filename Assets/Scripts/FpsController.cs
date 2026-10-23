@@ -1,3 +1,4 @@
+
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -7,9 +8,6 @@ public class FPSController : MonoBehaviour
     [Header("References")]
     [SerializeField] private Animator animator;
 
-    
-    // [SerializeField] private Transform cameraTransform;
-
     [Header("Movement")]
     [SerializeField] private float moveSpeed = 5f;
     [SerializeField] private float gravity = -20f;
@@ -17,25 +15,46 @@ public class FPSController : MonoBehaviour
     [Header("Jump")]
     [SerializeField] private float jumpHeight = 2f;
 
-    // [Header("Look")]
-    // [SerializeField] private float mouseSensitivity = 0.08f;
-    // [SerializeField] private float gamepadLookSpeed = 180f;
-    // [SerializeField] private float maxLookAngle = 85f;
+    [Header("Dash")]
+    [SerializeField] private float dashSpeed = 12f;
+    [SerializeField] private float dashDuration = 0.5f;
+
+    [Header("Slide")]
+    [SerializeField] private float slideSpeed = 10f;
+    [SerializeField] private float slideDuration = 0.8f;
+    [SerializeField] private float slideHeight = 1f;
 
     private CharacterController controller;
     private DefaultInputActions inputActions;
 
     private float verticalVelocity;
-    private bool canJump;
+    private float dashTimer;
+    private float slideTimer;
 
-    // private float cameraPitch;
+    private float normalHeight;
+    private Vector3 normalCenter;
+
+    private bool canJump;
+    private bool isDashing;
+    private bool isSliding;
+
+    private Vector3 dashDirection;
+    private Vector3 slideDirection;
 
     private void Awake()
     {
         controller = GetComponent<CharacterController>();
-        animator = GetComponent<Animator>();
+
+        if (animator == null)
+        {
+            animator = GetComponentInChildren<Animator>();
+        }
 
         inputActions = new DefaultInputActions();
+
+        // Guarda las dimensiones originales del personaje.
+        normalHeight = controller.height;
+        normalCenter = controller.center;
     }
 
     private void OnEnable()
@@ -57,112 +76,196 @@ public class FPSController : MonoBehaviour
     private void Update()
     {
         Move();
-        // Look();
+        UpdateDash();
+        UpdateSlide();
     }
 
     private void Move()
     {
-        // X = izquierda / derecha
-        // Y = adelante / atrás
-        Vector2 input = inputActions.Player.Move.ReadValue<Vector2>();
+        Vector2 input= inputActions.Player.Move.ReadValue<Vector2>();
 
-        Vector3 move =transform.right * input.x + transform.forward * input.y;
+        Vector3 move= transform.right * input.x
+                     + transform.forward * input.y;
 
-        // Evita que el movimiento diagonal sea más rápido.
-        if (move.sqrMagnitude > 1f)
+        if (move.sqrMagnitude >1f)
         {
             move.Normalize();
         }
 
-        // Mantiene al personaje pegado al suelo.
-        if (controller.isGrounded && verticalVelocity < 0f)
+        // Mantiene al personaje en el suelo.
+        if (controller.isGrounded && verticalVelocity<0f)
         {
             verticalVelocity = -2f;
         }
 
-        // Comprueba si el jugador pidió saltar.
-        if (canJump && controller.isGrounded)
+        // Salto normal, excepto mientras se desliza.
+        if (canJump && controller.isGrounded && !isSliding)
         {
-            verticalVelocity = Mathf.Sqrt(jumpHeight*-2f*gravity);
+            verticalVelocity = Mathf.Sqrt(
+                jumpHeight * -2f * gravity
+            );
         }
 
-        // Reinicia la petición para no saltar repetidamente.
-        canJump = false;
+        canJump= false;
 
-        // Aplica gravedad.
-        verticalVelocity += gravity * Time.deltaTime;
+        verticalVelocity+= gravity*Time.deltaTime;
 
-        Vector3 velocity = move * moveSpeed;
-        velocity.y = verticalVelocity;
+        // No permite que el movimiento normal interfiera
+        // con el dash o el slide.
+        Vector3 velocity = Vector3.zero;
 
-        controller.Move(velocity * Time.deltaTime);
-
-
-        // ANIMACIÓN
-        if (input.magnitude > 0.01f)
+        if (isDashing || isSliding)
         {
-            animator.SetBool("IsWalking", true);
+            velocity= dashDirection*0f;
         }
         else
         {
-            animator.SetBool("IsWalking", false);
+            velocity= move*moveSpeed;
+        }
+
+        velocity.y= verticalVelocity;
+
+        if (!isDashing && !isSliding)
+        {
+            controller.Move(velocity*Time.deltaTime);
+        }
+
+        // Animación de caminar.
+        if (animator != null)
+        {
+            animator.SetBool(
+                "IsWalking",
+                input.magnitude > 0.01f && !isDashing && !isSliding
+            );
         }
     }
 
     public void Jump()
     {
-        canJump=true;
+        canJump =true;
     }
-    
-    /*
-    private void Look()
+
+    // DASH
+
+    public void StartDash()
     {
-        Vector2 lookInput =
-            inputActions.Player.Look.ReadValue<Vector2>();
-
-        float yaw;
-        float pitchDelta;
-
-        // Mouse y joystick necesitan tratamiento ligeramente diferente.
-        // Mouse entrega delta de movimiento.
-        // Gamepad entrega una posición del stick.
-        bool usingMouse =
-            inputActions.Player.Look.activeControl?.device is Mouse;
-
-        if (usingMouse)
+        if (isDashing || isSliding || !controller.isGrounded)
         {
-            yaw = lookInput.x * mouseSensitivity;
-            pitchDelta = lookInput.y * mouseSensitivity;
-        }
-        else
-        {
-            yaw =
-                lookInput.x *
-                gamepadLookSpeed *
-                Time.deltaTime;
-
-            pitchDelta =
-                lookInput.y *
-                gamepadLookSpeed *
-                Time.deltaTime;
+            return;
         }
 
-        // Rotación horizontal:
-        // gira todo el personaje.
-        transform.Rotate(Vector3.up * yaw);
+        Vector2 input = inputActions.Player.Move.ReadValue<Vector2>();
 
-        // Rotación vertical:
-        // solamente gira la cámara.
-        cameraPitch -= pitchDelta;
+        Vector3 direction= transform.right*input.x + transform.forward*input.y;
 
-        cameraPitch = Mathf.Clamp(
-            cameraPitch,
-            -maxLookAngle,
-            maxLookAngle
+        // Si no hay dirección, realiza el dash hacia adelante.
+        if (direction.sqrMagnitude < 0.01f)
+        {
+            direction = transform.forward;
+        }
+
+        dashDirection = direction.normalized;
+
+        isDashing = true;
+        dashTimer = dashDuration;
+
+        if (animator != null)
+        {
+            animator.SetBool("IsDashing", true);
+            animator.SetBool("IsWalking", false);
+        }
+    }
+
+    private void UpdateDash()
+    {
+        if (!isDashing)
+        {
+            return;
+        }
+
+        dashTimer-= Time.deltaTime;
+
+        // Avanza rápidamente durante el dash.
+        controller.Move((dashDirection*dashSpeed + Vector3.up*verticalVelocity) *Time.deltaTime);
+
+        if (dashTimer <= 0f)
+        {
+            isDashing=false;
+
+            if (animator != null)
+            {
+                animator.SetBool("IsDashing", false);
+            }
+        }
+    }
+
+    // SLIDE
+
+    public void StartSlide()
+    {
+        if (isSliding || isDashing || !controller.isGrounded)
+        {
+            return;
+        }
+
+        Vector2 input = inputActions.Player.Move.ReadValue<Vector2>();
+
+        Vector3 direction= transform.right*input.x + transform.forward*input.y;
+
+        // Si no hay movimiento, se desliza hacia adelante.
+        if (direction.sqrMagnitude < 0.01f)
+        {
+            direction = transform.forward;
+        }
+
+        slideDirection = direction.normalized;
+
+        isSliding = true;
+        slideTimer = slideDuration;
+
+        // Reduce la cápsula para adoptar una postura baja.
+        controller.height = slideHeight;
+        controller.center = new Vector3(normalCenter.x, slideHeight / 2f, normalCenter.z);
+
+        if (animator != null)
+        {
+            animator.SetBool("IsSliding", true);
+            animator.SetBool("IsWalking", false);
+        }
+    }
+
+    private void UpdateSlide()
+    {
+        if (!isSliding)
+        {
+            return;
+        }
+
+        slideTimer -= Time.deltaTime;
+
+        // Reduce progresivamente la velocidad del slide.
+        float currentSlideSpeed = slideSpeed*Mathf.Clamp01(slideTimer / slideDuration);
+
+        controller.Move((slideDirection*currentSlideSpeed + Vector3.up*verticalVelocity)*Time.deltaTime
         );
 
-        cameraTransform.localRotation =
-            Quaternion.Euler(cameraPitch, 0f, 0f);
+        if (slideTimer <= 0f)
+        {
+            EndSlide();
+        }
     }
-    */
+
+    private void EndSlide()
+    {
+        isSliding = false;
+
+        // Restaura la cápsula original.
+        controller.height = normalHeight;
+        controller.center = normalCenter;
+
+        if (animator != null)
+        {
+            animator.SetBool("IsSliding", false);
+        }
+    }
 }
