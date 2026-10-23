@@ -1,9 +1,10 @@
 
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Unity.Netcode;
 
 [RequireComponent(typeof(CharacterController))]
-public class FPSController : MonoBehaviour
+public class FPSController : NetworkBehaviour
 {
     [Header("References")]
     [SerializeField] private Animator animator;
@@ -59,25 +60,32 @@ public class FPSController : MonoBehaviour
 
     private void OnEnable()
     {
-        inputActions.Player.Enable();
+        if (IsOwner) inputActions.Player.Enable();
     }
 
     private void OnDisable()
     {
-        inputActions.Player.Disable();
+        if (IsOwner) inputActions.Player.Disable();
     }
 
     private void Start()
     {
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
+        if (IsOwner) {
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+        }
     }
 
     private void Update()
     {
+<<<<<<< HEAD:Assets/Scripts/FpsController.cs
         Move();
         UpdateDash();
         UpdateSlide();
+=======
+        if (IsOwner) Move();
+        // Look();
+>>>>>>> origin/NuribethRosales:Assets/_Scripts/Val/FpsController.cs
     }
 
     private void Move()
