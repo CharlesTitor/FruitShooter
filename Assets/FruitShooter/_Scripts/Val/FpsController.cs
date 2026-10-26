@@ -60,32 +60,31 @@ public class FPSController : NetworkBehaviour
 
     private void OnEnable()
     {
-        if (IsOwner) inputActions.Player.Enable();
+        //if (IsOwner) 
+        inputActions.Player.Enable();
     }
 
     private void OnDisable()
     {
-        if (IsOwner) inputActions.Player.Disable();
+        //if (IsOwner)
+         inputActions.Player.Disable();
     }
 
     private void Start()
     {
-        if (IsOwner) {
+        //if (IsOwner) {
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
-        }
+       // }
     }
 
     private void Update()
     {
-<<<<<<< HEAD:Assets/Scripts/FpsController.cs
         Move();
         UpdateDash();
         UpdateSlide();
-=======
-        if (IsOwner) Move();
+        //if (IsOwner) Move();
         // Look();
->>>>>>> origin/NuribethRosales:Assets/_Scripts/Val/FpsController.cs
     }
 
     private void Move()
