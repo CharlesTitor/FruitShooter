@@ -2060,22 +2060,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Health
   _maxHealth: 100
---- !u!114 &1075846766
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1075846760}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2a7c71d251235a449bd4de9c59cc5b93, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
-  speed: 5
-  rotationSpeed: 10
-  joystick: {fileID: 0}
-  animator: {fileID: 0}
 --- !u!1 &1127560630
 GameObject:
   m_ObjectHideFlags: 0
@@ -3081,9 +3065,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 19c9cc09ce0f4c04182ba8a625cf88c5, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1075846765}
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 19c9cc09ce0f4c04182ba8a625cf88c5, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1075846766}
   m_SourcePrefab: {fileID: 100100000, guid: 19c9cc09ce0f4c04182ba8a625cf88c5, type: 3}
 --- !u!1 &1330888473
 GameObject:
