@@ -8,6 +8,7 @@ public class FPSController : NetworkBehaviour
 {
     [Header("References")]
     [SerializeField] private Animator animator;
+    [SerializeField] private Transform cameraTransform;
 
     [Header("Movement")]
     [SerializeField] private float moveSpeed = 5f;
@@ -24,6 +25,12 @@ public class FPSController : NetworkBehaviour
     [SerializeField] private float slideSpeed = 10f;
     [SerializeField] private float slideDuration = 0.8f;
     [SerializeField] private float slideHeight = 1f;
+
+    // LOOK
+    [Header("Look")]
+    [SerializeField] private float lookSensitivity = 50f;
+    [SerializeField] private float lookSmoothness = 0.08f;
+    [SerializeField] private float maxLookAngle = 60f;
 
     private CharacterController controller;
     private DefaultInputActions inputActions;
@@ -42,6 +49,13 @@ public class FPSController : NetworkBehaviour
     private Vector3 dashDirection;
     private Vector3 slideDirection;
 
+    // LOOK
+    private float cameraPitch;
+    private float currentLookX;
+    private float currentLookY;
+    private float lookVelocityX;
+    private float lookVelocityY;
+
     private void Awake()
     {
         controller = GetComponent<CharacterController>();
@@ -53,29 +67,31 @@ public class FPSController : NetworkBehaviour
 
         inputActions = new DefaultInputActions();
 
-        // Guarda las dimensiones originales del personaje.
+        Debug.Log("INPUT ASSET: " + inputActions.asset.name);
+
+        foreach (var binding in inputActions.Player.Look.bindings)
+        {
+            Debug.Log("LOOK BINDING: " + binding.path);
+        }
+
         normalHeight = controller.height;
         normalCenter = controller.center;
     }
 
     private void OnEnable()
     {
-        //if (IsOwner) 
         inputActions.Player.Enable();
     }
 
     private void OnDisable()
     {
-        //if (IsOwner)
-         inputActions.Player.Disable();
+        inputActions.Player.Disable();
     }
 
     private void Start()
     {
-        //if (IsOwner) {
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible = false;
-       // }
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
     }
 
     private void Update()
@@ -83,29 +99,26 @@ public class FPSController : NetworkBehaviour
         Move();
         UpdateDash();
         UpdateSlide();
-        //if (IsOwner) Move();
-        // Look();
+        Look();
     }
 
     private void Move()
     {
-        Vector2 input= inputActions.Player.Move.ReadValue<Vector2>();
+        Vector2 input = inputActions.Player.Move.ReadValue<Vector2>();
 
-        Vector3 move= transform.right * input.x
+        Vector3 move = transform.right * input.x
                      + transform.forward * input.y;
 
-        if (move.sqrMagnitude >1f)
+        if (move.sqrMagnitude > 1f)
         {
             move.Normalize();
         }
 
-        // Mantiene al personaje en el suelo.
-        if (controller.isGrounded && verticalVelocity<0f)
+        if (controller.isGrounded && verticalVelocity < 0f)
         {
             verticalVelocity = -2f;
         }
 
-        // Salto normal, excepto mientras se desliza.
         if (canJump && controller.isGrounded && !isSliding)
         {
             verticalVelocity = Mathf.Sqrt(
@@ -113,31 +126,28 @@ public class FPSController : NetworkBehaviour
             );
         }
 
-        canJump= false;
+        canJump = false;
 
-        verticalVelocity+= gravity*Time.deltaTime;
+        verticalVelocity += gravity * Time.deltaTime;
 
-        // No permite que el movimiento normal interfiera
-        // con el dash o el slide.
         Vector3 velocity = Vector3.zero;
 
         if (isDashing || isSliding)
         {
-            velocity= dashDirection*0f;
+            velocity = dashDirection * 0f;
         }
         else
         {
-            velocity= move*moveSpeed;
+            velocity = move * moveSpeed;
         }
 
-        velocity.y= verticalVelocity;
+        velocity.y = verticalVelocity;
 
         if (!isDashing && !isSliding)
         {
-            controller.Move(velocity*Time.deltaTime);
+            controller.Move(velocity * Time.deltaTime);
         }
 
-        // Animación de caminar.
         if (animator != null)
         {
             animator.SetBool(
@@ -149,7 +159,7 @@ public class FPSController : NetworkBehaviour
 
     public void Jump()
     {
-        canJump =true;
+        canJump = true;
     }
 
     // DASH
@@ -163,9 +173,9 @@ public class FPSController : NetworkBehaviour
 
         Vector2 input = inputActions.Player.Move.ReadValue<Vector2>();
 
-        Vector3 direction= transform.right*input.x + transform.forward*input.y;
+        Vector3 direction = transform.right * input.x
+                          + transform.forward * input.y;
 
-        // Si no hay dirección, realiza el dash hacia adelante.
         if (direction.sqrMagnitude < 0.01f)
         {
             direction = transform.forward;
@@ -190,14 +200,16 @@ public class FPSController : NetworkBehaviour
             return;
         }
 
-        dashTimer-= Time.deltaTime;
+        dashTimer -= Time.deltaTime;
 
-        // Avanza rápidamente durante el dash.
-        controller.Move((dashDirection*dashSpeed + Vector3.up*verticalVelocity) *Time.deltaTime);
+        controller.Move(
+            (dashDirection * dashSpeed + Vector3.up * verticalVelocity)
+            * Time.deltaTime
+        );
 
         if (dashTimer <= 0f)
         {
-            isDashing=false;
+            isDashing = false;
 
             if (animator != null)
             {
@@ -217,9 +229,9 @@ public class FPSController : NetworkBehaviour
 
         Vector2 input = inputActions.Player.Move.ReadValue<Vector2>();
 
-        Vector3 direction= transform.right*input.x + transform.forward*input.y;
+        Vector3 direction = transform.right * input.x
+                          + transform.forward * input.y;
 
-        // Si no hay movimiento, se desliza hacia adelante.
         if (direction.sqrMagnitude < 0.01f)
         {
             direction = transform.forward;
@@ -230,9 +242,12 @@ public class FPSController : NetworkBehaviour
         isSliding = true;
         slideTimer = slideDuration;
 
-        // Reduce la cápsula para adoptar una postura baja.
         controller.height = slideHeight;
-        controller.center = new Vector3(normalCenter.x, slideHeight / 2f, normalCenter.z);
+        controller.center = new Vector3(
+            normalCenter.x,
+            slideHeight / 2f,
+            normalCenter.z
+        );
 
         if (animator != null)
         {
@@ -250,10 +265,12 @@ public class FPSController : NetworkBehaviour
 
         slideTimer -= Time.deltaTime;
 
-        // Reduce progresivamente la velocidad del slide.
-        float currentSlideSpeed = slideSpeed*Mathf.Clamp01(slideTimer / slideDuration);
+        float currentSlideSpeed = slideSpeed *
+            Mathf.Clamp01(slideTimer / slideDuration);
 
-        controller.Move((slideDirection*currentSlideSpeed + Vector3.up*verticalVelocity)*Time.deltaTime
+        controller.Move(
+            (slideDirection * currentSlideSpeed
+            + Vector3.up * verticalVelocity) * Time.deltaTime
         );
 
         if (slideTimer <= 0f)
@@ -266,7 +283,6 @@ public class FPSController : NetworkBehaviour
     {
         isSliding = false;
 
-        // Restaura la cápsula original.
         controller.height = normalHeight;
         controller.center = normalCenter;
 
@@ -274,5 +290,51 @@ public class FPSController : NetworkBehaviour
         {
             animator.SetBool("IsSliding", false);
         }
+    }
+
+    // LOOK
+
+    private void Look()
+    {
+        Vector2 lookInput =
+            inputActions.Player.Look.ReadValue<Vector2>();
+
+        Debug.Log(
+            "LOOK: " + lookInput +
+            " | CONTROL: " + inputActions.Player.Look.activeControl?.path
+        );
+        // Suaviza la entrada del joystick.
+        currentLookX = Mathf.SmoothDamp(
+            currentLookX,
+            lookInput.x,
+            ref lookVelocityX,
+            lookSmoothness
+        );
+
+        currentLookY = Mathf.SmoothDamp(
+            currentLookY,
+            lookInput.y,
+            ref lookVelocityY,
+            lookSmoothness
+        );
+
+        // Calcula la rotación horizontal y vertical.
+        float yaw = currentLookX * lookSensitivity * Time.deltaTime;
+        float pitch = currentLookY * lookSensitivity * Time.deltaTime;
+
+        // Gira el personaje horizontalmente.
+        transform.Rotate(Vector3.up * yaw);
+
+        // Gira la cámara verticalmente.
+        cameraPitch -= pitch;
+
+        cameraPitch = Mathf.Clamp(
+            cameraPitch,
+            -maxLookAngle,
+            maxLookAngle
+        );
+
+        cameraTransform.localRotation =
+            Quaternion.Euler(cameraPitch, 0f, 0f);
     }
 }
