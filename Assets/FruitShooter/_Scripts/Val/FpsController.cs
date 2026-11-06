@@ -1,4 +1,3 @@
-
 using UnityEngine;
 using UnityEngine.InputSystem;
 using Unity.Netcode;
@@ -45,6 +44,7 @@ public class FPSController : NetworkBehaviour
     private bool canJump;
     private bool isDashing;
     private bool isSliding;
+    private bool isDead;
 
     private Vector3 dashDirection;
     private Vector3 slideDirection;
@@ -66,13 +66,6 @@ public class FPSController : NetworkBehaviour
         }
 
         inputActions = new DefaultInputActions();
-
-        Debug.Log("INPUT ASSET: " + inputActions.asset.name);
-
-        foreach (var binding in inputActions.Player.Look.bindings)
-        {
-            Debug.Log("LOOK BINDING: " + binding.path);
-        }
 
         normalHeight = controller.height;
         normalCenter = controller.center;
@@ -96,6 +89,10 @@ public class FPSController : NetworkBehaviour
 
     private void Update()
     {
+        if (isDead)
+        {
+            return;
+        }
         Move();
         UpdateDash();
         UpdateSlide();
@@ -119,11 +116,9 @@ public class FPSController : NetworkBehaviour
             verticalVelocity = -2f;
         }
 
-        if (canJump && controller.isGrounded && !isSliding)
+        if (canJump && controller.isGrounded && !isSliding && !isDashing)
         {
-            verticalVelocity = Mathf.Sqrt(
-                jumpHeight * -2f * gravity
-            );
+            verticalVelocity = Mathf.Sqrt(jumpHeight * -2f * gravity);
         }
 
         canJump = false;
@@ -155,10 +150,28 @@ public class FPSController : NetworkBehaviour
                 input.magnitude > 0.01f && !isDashing && !isSliding
             );
         }
+
+        if (animator != null)
+        {
+            animator.SetBool(
+                "IsWalking",
+                input.magnitude > 0.01f && !isDashing && !isSliding
+            );
+
+            animator.SetBool(
+                "IsJumping",
+                !controller.isGrounded && !isDashing && !isSliding
+            );
+        }
     }
 
     public void Jump()
     {
+        if (isDead || isDashing || isSliding)
+        {
+            return;
+        }
+        
         canJump = true;
     }
 
@@ -166,7 +179,7 @@ public class FPSController : NetworkBehaviour
 
     public void StartDash()
     {
-        if (isDashing || isSliding || !controller.isGrounded)
+        if (isDead || isDashing || isSliding || !controller.isGrounded)
         {
             return;
         }
@@ -222,7 +235,7 @@ public class FPSController : NetworkBehaviour
 
     public void StartSlide()
     {
-        if (isSliding || isDashing || !controller.isGrounded)
+        if (isDead || isDashing || isSliding || !controller.isGrounded)
         {
             return;
         }
@@ -292,6 +305,39 @@ public class FPSController : NetworkBehaviour
         }
     }
 
+    //DIE
+
+    public void Die()
+    {
+        if (isDead)
+        {
+            return;
+        }
+
+        isDead = true;
+
+        canJump = false;
+        isDashing = false;
+        isSliding = false;
+
+        verticalVelocity = 0f;
+
+        controller.height = normalHeight;
+        controller.center = normalCenter;
+
+        if (animator != null)
+        {
+            animator.SetBool("IsWalking", false);
+            animator.SetBool("IsDashing", false);
+            animator.SetBool("IsSliding", false);
+            animator.SetBool("IsJumping", false);
+
+            animator.SetBool("IsDead", true);
+        }
+
+        Debug.Log("Player has died.");
+    }
+
     // LOOK
 
     private void Look()
@@ -299,10 +345,6 @@ public class FPSController : NetworkBehaviour
         Vector2 lookInput =
             inputActions.Player.Look.ReadValue<Vector2>();
 
-        Debug.Log(
-            "LOOK: " + lookInput +
-            " | CONTROL: " + inputActions.Player.Look.activeControl?.path
-        );
         // Suaviza la entrada del joystick.
         currentLookX = Mathf.SmoothDamp(
             currentLookX,
