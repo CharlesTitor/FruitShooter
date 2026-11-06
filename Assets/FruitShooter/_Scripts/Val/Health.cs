@@ -6,10 +6,12 @@ public class Health : MonoBehaviour, IDamageable
 
     private float _currentHealth;
     private bool _isDead = false;
+     private FPSController _fpsController;
 
     private void Awake()
     {
         _currentHealth= _maxHealth;
+        _fpsController = GetComponentInParent<FPSController>();
     }
 
     public void TakeDamage(float damage)
@@ -39,5 +41,10 @@ public class Health : MonoBehaviour, IDamageable
         _isDead = true;
 
         Debug.Log(gameObject.name + " has been defeated.");
+        
+        if (_fpsController != null)
+        {
+            _fpsController.Die();
+        }
     }
 }
