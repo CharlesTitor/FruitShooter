@@ -56,6 +56,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Fresa
       objectReference: {fileID: 0}
+    - target: {fileID: 5866666021909216657, guid: 30d9a6b50de24944ebed7a081ceed6b4, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 9100000, guid: b0f8efdb6e19b4e4bb91423d9c204a05, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -138,7 +142,27 @@ MonoBehaviour:
   m_Animator: {fileID: 9098641564210553282}
   TransitionStateInfoList: []
   AnimatorParameterEntries:
-    ParameterEntries: []
+    ParameterEntries:
+    - name: IsWalking
+      NameHash: 1282839668
+      Synchronize: 1
+      ParameterType: 4
+    - name: IsSlide
+      NameHash: -1270503744
+      Synchronize: 1
+      ParameterType: 4
+    - name: IsDash
+      NameHash: 1040174394
+      Synchronize: 1
+      ParameterType: 4
+    - name: IsJump
+      NameHash: 19011116
+      Synchronize: 1
+      ParameterType: 4
+    - name: IsDeath
+      NameHash: 569220492
+      Synchronize: 1
+      ParameterType: 4
   AnimatorParametersExpanded: 0
 --- !u!136 &6006029463813340103
 CapsuleCollider:
