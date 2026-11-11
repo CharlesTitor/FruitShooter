@@ -65,6 +65,8 @@ public class FPSController : NetworkBehaviour
             animator = GetComponentInChildren<Animator>();
         }
 
+        if (!cameraTransform) { cameraTransform=Camera.main.transform;}
+
         inputActions = new DefaultInputActions();
 
         normalHeight = controller.height;
