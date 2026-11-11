@@ -274,6 +274,22 @@ MonoBehaviour:
       NameHash: 1282839668
       Synchronize: 1
       ParameterType: 4
+    - name: IsDashing
+      NameHash: -364528230
+      Synchronize: 1
+      ParameterType: 4
+    - name: IsSliding
+      NameHash: -1809564513
+      Synchronize: 1
+      ParameterType: 4
+    - name: IsJumping
+      NameHash: 1749078233
+      Synchronize: 1
+      ParameterType: 4
+    - name: IsDead
+      NameHash: 1270110494
+      Synchronize: 1
+      ParameterType: 4
   AnimatorParametersExpanded: 0
 --- !u!143 &1534915382783056318
 CharacterController:
@@ -314,6 +330,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FPSController
   ShowTopMostFoldoutHeaderGroup: 1
   animator: {fileID: 5911861964647790996}
+  cameraTransform: {fileID: 0}
   moveSpeed: 5
   gravity: -20
   jumpHeight: 2
+  dashSpeed: 12
+  dashDuration: 0.5
+  slideSpeed: 10
+  slideDuration: 0.8
+  slideHeight: 1
+  lookSensitivity: 50
+  lookSmoothness: 0.08
+  maxLookAngle: 60
