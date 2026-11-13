@@ -390,7 +390,7 @@ MonoBehaviour:
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
+          m_IntArgument: 1
           m_FloatArgument: 0
           m_StringArgument: 
           m_BoolArgument: 0
@@ -863,7 +863,7 @@ Transform:
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: -2, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
+  m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -1069,7 +1069,7 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   _characters:
   - {fileID: 2589325916867027202, guid: 582a11bd9cc699e49847bfe1e9b5ebfd, type: 3}
-  - {fileID: 2311048134048939255, guid: 81eb751e42b290d41b3256637c99728c, type: 3}
+  - {fileID: 5395772068275959952, guid: e2b533fb29c83014ca3cf635f6ad41d1, type: 3}
 --- !u!1 &2103241857
 GameObject:
   m_ObjectHideFlags: 0
