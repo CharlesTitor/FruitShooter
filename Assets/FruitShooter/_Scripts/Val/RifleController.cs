@@ -1,3 +1,12 @@
+/*
+Reference: ChatGPT Conversation
+Conversation: Adaptar cámara y disparo
+Game: Fruit Shooter
+Game Type: 3D
+Date: 13/11/2026
+Purpose: La IA me ayudo a adaptar, con eventos, que al estar presionado el boton se pueda disparar "infinitamente"
+https://chatgpt.com/share/6af79f90-4eb0-83e8-b707-d1db2f414168
+*/
 using System.Collections;
 using TMPro;
 using UnityEngine;
@@ -15,11 +24,30 @@ public class RifleController : MonoBehaviour
     private int _currentAmmo;
     private float _nextFireTime =0f;
     private bool _isReloading=false;    
+    private bool isShooting;
+
+    private void Update()
+    {
+        if (isShooting)
+        {
+            Shoot();
+        }
+    }
 
     private void Start()
     {
         _currentAmmo = _magazineSize;
         UpdateAmmoText();
+    }
+
+    public void StartShooting()
+    {
+        isShooting = true;
+    }
+
+    public void StopShooting()
+    {
+        isShooting = false;
     }
     
     public void Shoot()
