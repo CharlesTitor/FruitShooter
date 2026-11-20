@@ -1,6 +1,20 @@
+/*
+Reference: ChatGPT Conversation
+Conversation: Adaptar cámara y disparo
+Game: Fruit Shooter
+Game Type: 3D
+Date: 13/11/2026
+Purpose: La IA me ayudo a cambiar el metodo de Look ya que ya no quieren que haya un joystick derecho
+https://chatgpt.com/share/6af79f90-4eb0-83e8-b707-d1db2f414168
+*/
+
 using UnityEngine;
 using UnityEngine.InputSystem;
 using Unity.Netcode;
+using Touch = UnityEngine.InputSystem.EnhancedTouch.Touch;
+using System.Collections.Generic;
+using UnityEngine.InputSystem.EnhancedTouch;
+using UnityEngine.EventSystems;
 
 [RequireComponent(typeof(CharacterController))]
 public class FPSController : NetworkBehaviour
@@ -27,10 +41,9 @@ public class FPSController : NetworkBehaviour
 
     // LOOK
     [Header("Look")]
-    [SerializeField] private float lookSensitivity = 50f;
-    [SerializeField] private float lookSmoothness = 0.08f;
+    [SerializeField] private float lookSensitivity = .15f;
+    [SerializeField] private float lookSmoothness = 0.05f;
     [SerializeField] private float maxLookAngle = 60f;
-
     private CharacterController controller;
     private DefaultInputActions inputActions;
 
@@ -55,6 +68,8 @@ public class FPSController : NetworkBehaviour
     private float currentLookY;
     private float lookVelocityX;
     private float lookVelocityY;
+    private List<int> lookFingerIds = new List<int>();
+    [SerializeField] private RectTransform[] uiAreasToIgnore;
 
     private void Awake()
     {
@@ -76,11 +91,14 @@ public class FPSController : NetworkBehaviour
     private void OnEnable()
     {
         inputActions.Player.Enable();
+        EnhancedTouchSupport.Enable();
     }
 
     private void OnDisable()
     {
         inputActions.Player.Disable();
+        EnhancedTouchSupport.Disable();
+        lookFingerIds.Clear();
     }
 
     private void Start()
@@ -105,8 +123,7 @@ public class FPSController : NetworkBehaviour
     {
         Vector2 input = inputActions.Player.Move.ReadValue<Vector2>();
 
-        Vector3 move = transform.right * input.x
-                     + transform.forward * input.y;
+        Vector3 move = transform.right*input.x+ transform.forward*input.y;
 
         if (move.sqrMagnitude > 1f)
         {
@@ -115,17 +132,17 @@ public class FPSController : NetworkBehaviour
 
         if (controller.isGrounded && verticalVelocity < 0f)
         {
-            verticalVelocity = -2f;
+            verticalVelocity= -2f;
         }
 
         if (canJump && controller.isGrounded && !isSliding && !isDashing)
         {
-            verticalVelocity = Mathf.Sqrt(jumpHeight * -2f * gravity);
+            verticalVelocity = Mathf.Sqrt(jumpHeight*-2f*gravity);
         }
 
         canJump = false;
 
-        verticalVelocity += gravity * Time.deltaTime;
+        verticalVelocity += gravity*Time.deltaTime;
 
         Vector3 velocity = Vector3.zero;
 
@@ -147,23 +164,14 @@ public class FPSController : NetworkBehaviour
 
         if (animator != null)
         {
-            animator.SetBool(
-                "IsWalking",
-                input.magnitude > 0.01f && !isDashing && !isSliding
-            );
+            animator.SetBool("IsWalking",input.magnitude > 0.01f && !isDashing && !isSliding);
         }
 
         if (animator != null)
         {
-            animator.SetBool(
-                "IsWalking",
-                input.magnitude > 0.01f && !isDashing && !isSliding
-            );
+            animator.SetBool("IsWalking",input.magnitude > 0.01f && !isDashing && !isSliding);
 
-            animator.SetBool(
-                "IsJumping",
-                !controller.isGrounded && !isDashing && !isSliding
-            );
+            animator.SetBool("IsJumping",!controller.isGrounded && !isDashing && !isSliding);
         }
     }
 
@@ -186,20 +194,19 @@ public class FPSController : NetworkBehaviour
             return;
         }
 
-        Vector2 input = inputActions.Player.Move.ReadValue<Vector2>();
+        Vector2 input =inputActions.Player.Move.ReadValue<Vector2>();
 
-        Vector3 direction = transform.right * input.x
-                          + transform.forward * input.y;
+        Vector3 direction= transform.right*input.x+transform.forward*input.y;
 
         if (direction.sqrMagnitude < 0.01f)
         {
-            direction = transform.forward;
+            direction= transform.forward;
         }
 
-        dashDirection = direction.normalized;
+        dashDirection= direction.normalized;
 
-        isDashing = true;
-        dashTimer = dashDuration;
+        isDashing= true;
+        dashTimer= dashDuration;
 
         if (animator != null)
         {
@@ -217,10 +224,7 @@ public class FPSController : NetworkBehaviour
 
         dashTimer -= Time.deltaTime;
 
-        controller.Move(
-            (dashDirection * dashSpeed + Vector3.up * verticalVelocity)
-            * Time.deltaTime
-        );
+        controller.Move((dashDirection * dashSpeed + Vector3.up * verticalVelocity)*Time.deltaTime);
 
         if (dashTimer <= 0f)
         {
@@ -244,8 +248,7 @@ public class FPSController : NetworkBehaviour
 
         Vector2 input = inputActions.Player.Move.ReadValue<Vector2>();
 
-        Vector3 direction = transform.right * input.x
-                          + transform.forward * input.y;
+        Vector3 direction = transform.right*input.x+transform.forward*input.y;
 
         if (direction.sqrMagnitude < 0.01f)
         {
@@ -258,11 +261,7 @@ public class FPSController : NetworkBehaviour
         slideTimer = slideDuration;
 
         controller.height = slideHeight;
-        controller.center = new Vector3(
-            normalCenter.x,
-            slideHeight / 2f,
-            normalCenter.z
-        );
+        controller.center = new Vector3(normalCenter.x,slideHeight / 2f,normalCenter.z);
 
         if (animator != null)
         {
@@ -280,13 +279,9 @@ public class FPSController : NetworkBehaviour
 
         slideTimer -= Time.deltaTime;
 
-        float currentSlideSpeed = slideSpeed *
-            Mathf.Clamp01(slideTimer / slideDuration);
+        float currentSlideSpeed = slideSpeed*Mathf.Clamp01(slideTimer / slideDuration);
 
-        controller.Move(
-            (slideDirection * currentSlideSpeed
-            + Vector3.up * verticalVelocity) * Time.deltaTime
-        );
+        controller.Move((slideDirection * currentSlideSpeed+Vector3.up*verticalVelocity)*Time.deltaTime);
 
         if (slideTimer <= 0f)
         {
@@ -342,12 +337,46 @@ public class FPSController : NetworkBehaviour
 
     // LOOK
 
+    private bool IsTouchOverUI(Vector2 touchPosition)
+    {
+        for (int i=0; i<uiAreasToIgnore.Length;i++)
+        {
+            if (RectTransformUtility.RectangleContainsScreenPoint(uiAreasToIgnore[i], touchPosition))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
     private void Look()
     {
-        Vector2 lookInput =
-            inputActions.Player.Look.ReadValue<Vector2>();
+        Vector2 lookInput = Vector2.zero;
 
-        // Suaviza la entrada del joystick.
+        foreach (Touch touch in Touch.activeTouches)
+        {
+            if (touch.phase == UnityEngine.InputSystem.TouchPhase.Began)
+            {
+                if (!IsTouchOverUI(touch.screenPosition))
+                {
+                    lookFingerIds.Add(touch.touchId);
+                }
+            }
+
+            if (lookFingerIds.Contains(touch.touchId))
+            {
+                if (touch.phase==UnityEngine.InputSystem.TouchPhase.Moved)
+                {
+                    lookInput += touch.delta;
+                }
+            }
+
+            if (touch.phase == UnityEngine.InputSystem.TouchPhase.Ended||touch.phase == UnityEngine.InputSystem.TouchPhase.Canceled)
+            {
+                lookFingerIds.Remove(touch.touchId);
+            }
+        }
+
         currentLookX = Mathf.SmoothDamp(
             currentLookX,
             lookInput.x,
@@ -362,14 +391,11 @@ public class FPSController : NetworkBehaviour
             lookSmoothness
         );
 
-        // Calcula la rotación horizontal y vertical.
-        float yaw = currentLookX * lookSensitivity * Time.deltaTime;
-        float pitch = currentLookY * lookSensitivity * Time.deltaTime;
+        float yaw = currentLookX*lookSensitivity;
+        float pitch = currentLookY*lookSensitivity;
 
-        // Gira el personaje horizontalmente.
-        transform.Rotate(Vector3.up * yaw);
+        transform.Rotate(Vector3.up*yaw);
 
-        // Gira la cámara verticalmente.
         cameraPitch -= pitch;
 
         cameraPitch = Mathf.Clamp(
